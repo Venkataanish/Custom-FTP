@@ -11,7 +11,7 @@
 
 typedef struct message {
 	int seq;
-	char *info;
+	char info[CHUNKSIZE];
 } Message;
 
 int roundVal(double num);
@@ -20,5 +20,7 @@ int writeChunk(FILE *fp, Message *msg, int seq);
 Message* getChunk(FILE *fp, int seq);
 Message* getNext(FILE *fp, int seq);
 int initFilePtr(char *path, FILE **fp, char *mode);
+int getParts(int size);
+void error(const char *msg);
 
 #endif
