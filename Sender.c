@@ -23,301 +23,272 @@
 #include "FileUtil.h"
 #include "RecieverThreads.h"
 
-
 char buffer[NUMPACKETS];
 
-
-pthread_t send_thr, resend_thr, tcp_thr;;
-
+pthread_t send_thr, resend_thr, tcp_thr;
+;
 
 typedef struct input {
 
-char *hostname;
+	char *hostname;
 
-int port;
-
+	int port;
 
 } Input;
 
-
 void *udp_send(void * argv) {
 
-Input *inp = (Input*) argv;
+	Input *inp = (Input*) argv;
 
-int sock, count;
+	int sock, count;
 
-unsigned int length;
+	unsigned int length;
 
-struct sockaddr_in server;
+	struct sockaddr_in server;
 
-struct hostent *hp;
+	struct hostent *hp;
 
-Message *newmsg;
+	Message *newmsg;
 
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
 
-if (sock < 0) {
+		error("socket");
 
-error("socket");
+	}
 
-}
+	server.sin_family = AF_INET;
 
-server.sin_family = AF_INET;
+	hp = gethostbyname(inp->hostname);
 
+	if (hp == 0) {
 
-hp = gethostbyname(inp->hostname);
+		error("Unknown host");
 
-if (hp == 0) {
+	}
 
-error("Unknown host");
+	bcopy((char *) hp->h_addr,
 
-}
+	(char *)&server.sin_addr,
 
-bcopy((char *) hp->h_addr,
+	hp->h_length);
 
-(char *)&server.sin_addr,
+	server.sin_port = htons(inp->port);
 
-hp->h_length);
-
-server.sin_port = htons( inp->port);
-
-length = sizeof(struct sockaddr_in);
-
+	length = sizeof(struct sockaddr_in);
 
 //file handling
 
-int parts;
+	int parts;
 
-FILE *fp;
+	FILE *fp;
 
-int size = initFilePtr("x.txt", &fp, "r");
+	int size = initFilePtr("x.txt", &fp, "r");
 
-parts = getParts(size);
-
+	parts = getParts(size);
 
 //send file sequentially
 
-for (count = 0; count < parts; count++) {
+	for (count = 0; count < parts; count++) {
 
-if( count % 2 == 0)
-{
+		newmsg = getNext(fp, count);
 
+		if (count % 2 == 0) {
+			printf("Sending msg  = %s , seq = %d\n", newmsg->info, newmsg->seq);
 
-newmsg = getNext(fp, count);
+			usleep(1000);
+			sendto(sock, newmsg, sizeof(Message), 0,
 
-printf("Sending msg  = %s , seq = %d\n", newmsg->info,newmsg->seq);
+			(const struct sockaddr *) &server, length);
 
-usleep(1000);
+		}
 
-sendto(sock,  newmsg, sizeof(Message), 0,
+	}
 
-(const struct sockaddr *) &server, length);
+	close(sock);
 
-}
-
-}
-
-close(sock);
-
-
-return NULL;
+	return NULL;
 
 }
 
+void *tcp_receive(void *argv) {
 
-void *tcp_receive(void *argv){
+	int sockfd, newsockfd;
 
-int sockfd, newsockfd ;
+	socklen_t clilen;
 
-     socklen_t clilen;
+	//char buffer[NUMPACKETS];
 
-     //char buffer[NUMPACKETS];
+	//int *resend_seq;
 
-        //int *resend_seq;
+	struct sockaddr_in serv_addr, cli_addr;
 
-     struct sockaddr_in serv_addr, cli_addr;
+	int n;
 
-     int n;
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-     sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
 
-     if (sockfd < 0) 
+		error("ERROR opening socket");
 
-       error("ERROR opening socket");
+	bzero((char *) &serv_addr, sizeof(serv_addr));
 
-     bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
 
-     serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = INADDR_ANY;
 
-     serv_addr.sin_addr.s_addr = INADDR_ANY;
+	serv_addr.sin_port = htons(port_sendfromreceiver);
 
-     serv_addr.sin_port = htons(port_sendfromreceiver);
+	if (bind(sockfd, (struct sockaddr *) &serv_addr,
 
-     if (bind(sockfd, (struct sockaddr *) &serv_addr,
+	sizeof(serv_addr)) < 0)
 
-              sizeof(serv_addr)) < 0) 
+		error("ERROR on binding");
 
-              error("ERROR on binding");
+	listen(sockfd, 5);
 
-     listen(sockfd,5);
+	clilen = sizeof(cli_addr);
 
-     clilen = sizeof(cli_addr);
+	newsockfd = accept(sockfd,
 
-     newsockfd = accept(sockfd, 
+	(struct sockaddr *) &cli_addr,
 
-        	        (struct sockaddr *) &cli_addr, 
+	&clilen);
 
-                	&clilen);
+	if (newsockfd < 0)
 
-     if (newsockfd < 0) 
+		error("ERROR on accept");
 
-          error("ERROR on accept");
+	//bzero(buffer, NUMPACKETS);
+	while (strcmp(buffer, "111111111111111")) {
 
-     //bzero(buffer, NUMPACKETS);
-     while(strcmp(buffer,"111111111111111")){
+		n = read(newsockfd, buffer, NUMPACKETS);
+		buffer[NUMPACKETS] = '\0';
 
-     n = read(newsockfd,buffer, NUMPACKETS);
-     buffer[NUMPACKETS]='\0';
+		printf("Received retransmit request:%s\n", buffer);
 
-        printf("Received retransmit request:%s\n", buffer);
+		if (n < 0)
+			error("ERROR reading from socket");
+	}
+	//close(newsockfd);
 
-     if (n < 0) error("ERROR reading from socket");
-     }
-     //close(newsockfd);
+	//close(sockfd);
 
-     //close(sockfd);
-
-     return NULL; 
+	return NULL;
 
 }
-
 
 void *udp_resend(void * argv) {
 	printf("Start retransmit\n");
 
-Input *inp = (Input*) argv;
+	Input *inp = (Input*) argv;
 
-        //char *buffer = (char *) argv;
+	//char *buffer = (char *) argv;
 
-int sock, count;
+	int sock, count;
 
-unsigned int length;
+	unsigned int length;
 
-struct sockaddr_in server;
+	struct sockaddr_in server;
 
-struct hostent *hp;
+	struct hostent *hp;
 
-Message *newmsg;
+	Message *newmsg;
 
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
 
-if (sock < 0) {
+		error("socket");
 
-error("socket");
+	}
 
-}
+	server.sin_family = AF_INET;
 
-server.sin_family = AF_INET;
+	hp = gethostbyname(inp->hostname);
 
+	if (hp == 0) {
 
-hp = gethostbyname(inp->hostname);
+		error("Unknown host");
 
-if (hp == 0) {
+	}
 
-error("Unknown host");
+	bcopy((char *) hp->h_addr,
 
-}
+	(char *)&server.sin_addr,
 
-bcopy((char *) hp->h_addr,
+	hp->h_length);
 
-(char *)&server.sin_addr,
+	server.sin_port = htons(inp->port);
 
-hp->h_length);
-
-server.sin_port = htons( inp->port);
-
-length = sizeof(struct sockaddr_in);
-
+	length = sizeof(struct sockaddr_in);
 
 //file handling
 
 //int seq;
 
-FILE *fp;
+	FILE *fp;
 
-
-initFilePtr("x.txt", &fp, "r");
-
+	initFilePtr("x.txt", &fp, "r");
 
 //send file sequentially
-while(strcmp(buffer,"111111111111111")){
-	printf("%s\n",buffer );
-for (count = 0; count < NUMPACKETS; count++) {
+	while (strcmp(buffer, "111111111111111")) {
+		printf("%s\n", buffer);
+		for (count = 0; count < NUMPACKETS; count++) {
 //printf("Inisde for loop\n");
-if(buffer[count] == '0'){
+			if (buffer[count] == '0') {
 
-newmsg = getChunk(fp, count);
+				newmsg = getChunk(fp, count);
 
 //printf("REEEESending msg  = %s , seq = %d\n", newmsg->info,newmsg->seq);
 
 //usleep(1000);
 
-sendto(sock,  newmsg, sizeof(Message), 0,
+				sendto(sock, newmsg, sizeof(Message), 0,
 
-(const struct sockaddr *) &server, length);
+				(const struct sockaddr *) &server, length);
 
-}
-}
-}
-close(sock);
+			}
+		}
+	}
+	close(sock);
 
-
-
-
-
-return NULL;
+	return NULL;
 }
 
 int main(int argc, char *argv[]) {
 
+	if (argc != 3) {
 
+		printf("Usage: server port\n");
 
+		exit(1);
 
-if (argc != 3) {
+	}
 
-printf("Usage: server port\n");
+	memset(buffer, 0, sizeof(buffer));
 
-exit(1);
+	Input *inp = malloc(sizeof(Input));
 
-}
+	inp->hostname = argv[1];
 
+	inp->port = atoi(argv[2]);
 
-memset(buffer,0,sizeof(buffer));
+	pthread_create(&send_thr, 0, udp_send, inp);
 
+	pthread_create(&tcp_thr, 0, tcp_receive, NULL);
 
-Input *inp = malloc(sizeof(Input));
+	pthread_create(&resend_thr, 0, udp_resend, inp);
 
-inp->hostname = argv[1];
+	pthread_join(send_thr, NULL);
 
-inp->port = atoi(argv[2]);
+	pthread_join(tcp_thr, NULL);
 
-pthread_create(&send_thr, 0, udp_send, inp);
+	pthread_join(resend_thr, NULL);
 
-pthread_create(&tcp_thr, 0, tcp_receive, NULL);
+	pthread_exit(0);
 
-pthread_create(&resend_thr, 0, udp_resend, inp);
-
-        pthread_join( send_thr, NULL);
-
-pthread_join( tcp_thr, NULL);
-
-pthread_join( resend_thr, NULL);
-
-
-pthread_exit(0);
-
-return 0;
+	return 0;
 
 }

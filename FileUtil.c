@@ -77,6 +77,7 @@ Message* getChunk(FILE *fp, int seq) {
 				return NULL;
 			} else {
 				fprintf(stderr, "Error in get chunk\n");
+				exit(0);
 			}
 
 		} else {

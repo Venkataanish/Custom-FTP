@@ -11,7 +11,7 @@
 
 typedef struct message {
 	int seq;
-	char info[CHUNKSIZE];
+	char info[CHUNKSIZE+1];
 } Message;
 
 int roundVal(double num);
