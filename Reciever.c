@@ -33,8 +33,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	pthread_create(&udprecieve_thr, 0, udp_recieve, argv[1]);
+	usleep(5000000);
 	pthread_create(&errorHandler_thr,0,sendErrorSeq,NULL);
-
+    pthread_join(errorHandler_thr,NULL);
 	pthread_join( udprecieve_thr, NULL);
 	pthread_exit(0);
 

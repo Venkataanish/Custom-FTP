@@ -41,7 +41,7 @@ int writeChunk(FILE *fp, Message *msg, int seq) {
 			if (fwrite(buff, 1, size, fp) != size) {
 				fprintf(stderr, "Less number of bytes written to file!\n");
 			} else {
-				free(msg);
+				//free(msg);
 				ret_val = 1;
 
 			}

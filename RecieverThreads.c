@@ -12,31 +12,31 @@
 void *sendErrorSeq(void *arg) {
 
 	int sockfd, n;
-	int sockUDP;
+	//int sockUDP;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
-	int buffer[10];
-	int j;
+	//int buffer[10];
+	//int j;
 
-	for (j = 0; j < 10; j++) {
+	/*for (j = 0; j < 10; j++) {
 
 		if (j % 2 == 0) {
 			buffer[j] = 1;
 		} else {
 			buffer[j] = 0;
 		}
-	}
+	}*/
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (sockfd < 0) {
 		error("ERROR opening socket");
 	}
-	sockUDP = socket(AF_INET, SOCK_DGRAM, 0);
+	/*sockUDP = socket(AF_INET, SOCK_DGRAM, 0);
 
 	if (sockUDP < 0) {
 		error("ERROR opening socket sockUDP");
-	}
+	}*/
 	//TODO: add struct
 	server = gethostbyname("localhost");
 
@@ -53,12 +53,15 @@ void *sendErrorSeq(void *arg) {
 			< 0) {
 		error("ERROR connecting");
 	}
+ 
+    while(strcmp(PACKETS,"111111111111111")){
+   printf("Packets = %s\n",PACKETS);
+	n = send(sockfd,  PACKETS, NUMPACKETS, 0);
 
-	n = send(sockfd, (char *) buffer, sizeof(buffer), 0);
 	if (n < 0) {
 		error("ERROR writing to socket");
 	}
-
+}
 	close(sockfd);
 
 	return NULL;
@@ -67,8 +70,13 @@ void *sendErrorSeq(void *arg) {
 
 
 void *udp_recieve(void * argv) {
-
-	int sock, length, n, i, parts=5;
+	int j;
+	for(j=0;j<NUMPACKETS;j++)
+	{
+		PACKETS[j]='0';
+	}
+	//memset(PACKETS,0,NUMPACKETS);
+	int sock, length, n, i, parts=15;
 	Message *temp = (Message*)malloc(sizeof(Message));
 	socklen_t fromlen;
 	struct sockaddr_in server;
@@ -91,7 +99,7 @@ void *udp_recieve(void * argv) {
 
 	fromlen = sizeof(struct sockaddr_in);
 
-
+	PACKETS[NUMPACKETS]='\0';
 
 	for (i = 0; i < parts; i++) {
 
@@ -101,9 +109,9 @@ void *udp_recieve(void * argv) {
 		if (n < 0) {
 			error("recvfrom");
 		}
-		PACKETS[temp->seq] = 1;
-		printf("Received seq: %d, received message: %s\n", temp->seq,
-				temp->info);
+		PACKETS[temp->seq] = '1';
+		printf("Received seq: %d, received message: %s, seqbuff = %s\n", temp->seq,
+				temp->info, PACKETS);
 	}
 
 	close(sock);

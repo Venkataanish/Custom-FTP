@@ -4,9 +4,9 @@
 
 #define port_sendfromreceiver 1670
 #define port_receivefromsender 1679
-#define NUMPACKETS 15
+#define NUMPACKETS 10
 
-char PACKETS[NUMPACKETS];
+int PACKETS[NUMPACKETS];
 
 void *udp_recieve(void * argv);
 void *sendErrorSeq(void *arg);
