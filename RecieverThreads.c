@@ -69,7 +69,7 @@ void *sendErrorSeq(void *arg) {
 void *udp_recieve(void * argv) {
 
 	int sock, length, n, i, parts=5;
-	Message *temp = NULL;
+	Message *temp = (Message*)malloc(sizeof(Message));
 	socklen_t fromlen;
 	struct sockaddr_in server;
 	struct sockaddr_in from;
@@ -98,7 +98,7 @@ void *udp_recieve(void * argv) {
 
 		n = recvfrom(sock, temp, sizeof(Message), 0, (struct sockaddr *) &from,
 				&fromlen);
-		if (n <= 0) {
+		if (n < 0) {
 			error("recvfrom");
 		}
 		PACKETS[temp->seq] = 1;
