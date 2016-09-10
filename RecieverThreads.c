@@ -9,6 +9,7 @@
 #include "FileUtil.h"
 #include "RecieverThreads.h"
 #include <pthread.h>
+int tcp_recive_started =0 , resend_start=0;
 void *TCP_Control(void *arg) {
 	printf("Strated Control\n");
 	int sockfd, newsockfd, n;
@@ -38,21 +39,36 @@ void *TCP_Control(void *arg) {
 		error("ERROR on accept");
 
 	n = read(newsockfd, s, 20);
+	if (n < 0)
+			error("ERROR reading from socket");
 
 	NUMPACKETS = atoi(s);
 	printf("Got The Number of Packetes from Sender :%d\n", NUMPACKETS);
 
+	n = read(newsockfd, s, 20);
+
+
+
 	if (n < 0)
 		error("ERROR reading from socket");
 
+	printf("can i start = %s\n",s);
+	tcp_recive_started= 1;
 	close(newsockfd);
 
 	return NULL;
 }
 
 void *sendErrorSeq(void *arg) {
+	while(tcp_recive_started==0){
+		usleep(100);
+	}
+	while(resend_start ==0){
+		usleep(100);
+	}
+
 	printf("Inside sendErrorSeq\n");
-	char *allones = (char*) malloc(sizeof(NUMPACKETS));
+	char *allones = (char*) malloc(NUMPACKETS);
 	memset(allones, '1', NUMPACKETS);
 	int sockfd, n;
 	//int sockUDP;
@@ -115,9 +131,11 @@ void *sendErrorSeq(void *arg) {
 }
 
 void *udp_recieve(void * argv) {
-	printf("started udp reciever\n");
+	printf("started udp reciever Pckets = %d\n", NUMPACKETS);
 	PACKETS = (char*) malloc(NUMPACKETS);
 	memset(PACKETS, '0', NUMPACKETS);
+	char *allones = (char*) malloc(NUMPACKETS);
+		memset(allones, '1', NUMPACKETS);
 	int sock, length, n, i;
 	FILE *fp;
 
@@ -145,9 +163,10 @@ void *udp_recieve(void * argv) {
 	}
 
 	fromlen = sizeof(struct sockaddr_in);
-	printf("NUMPACKETS = %d", NUMPACKETS);
+	printf("NUMPACKETS = %d\n", NUMPACKETS);
 	printf("before for ptr udp recieve\n");
-	for (i = 0; i < NUMPACKETS; i++) {
+	int prev =0;
+	while ((i= strcmp(PACKETS, allones))!=0) {
 		printf("inside for udp recieve\n");
 		n = recvfrom(sock, temp, sizeof(Message), 0, (struct sockaddr *) &from,
 				&fromlen);
@@ -155,10 +174,18 @@ void *udp_recieve(void * argv) {
 			error("recvfrom");
 		}
 		PACKETS[temp->seq] = '1';
+		if(temp->seq - prev >1){
+			printf("curr = %d, prev = %d\n",temp->seq,prev);
+			resend_start = 1;
+		}
 		printf(
 				"Received seq: %d, received message: %s, seqbuff = %s , i value = %d\n",
 				temp->seq, temp->info, PACKETS, i);
+		printf("NUMPACKETS = %d\n", NUMPACKETS);
+		printf("PACKETS = %s\n",PACKETS);
+		printf("allones = %s\n",allones);
 		writeChunk(fp, temp, temp->seq);
+		prev = temp->seq;
 	}
 
 	close(sock);
