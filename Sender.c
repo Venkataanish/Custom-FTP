@@ -27,14 +27,14 @@
 
 int NUMPACKETS;
 int start = 0;
-char *buffer;
+char *buffer = "000";
 int resend_start = 0;
 pthread_t send_thr, resend_thr, tcp_thr, control_thr;
 
 /*size_t last( char *str,  char ch) {
-	char *last_char = strrchr(str, ch);
-	return last_char - str;
-}*/
+ char *last_char = strrchr(str, ch);
+ return last_char - str;
+ }*/
 
 typedef struct input {
 
@@ -91,7 +91,8 @@ void *tcp_control(void * argv) {
 }
 
 void *udp_send(void * argv) {
-
+	char allones[NUMPACKETS];
+	memset(allones, '1', NUMPACKETS);
 	Input *inp = (Input*) argv;
 
 	int sock, count;
@@ -136,23 +137,25 @@ void *udp_send(void * argv) {
 
 	FILE *fp = inp->fp;
 //send file sequentially
+	while (strcmp(buffer, allones) != 0) {
+		for (count = 0; count < NUMPACKETS; count++) {
 
-	for (count = 0; count < NUMPACKETS; count++) {
+			newmsg = getNext(fp, count);
 
-		newmsg = getNext(fp, count);
+			if (count % 2 == 0) {
+				printf("Sending msg  = %s , seq = %d\n", newmsg->info,
+						newmsg->seq);
 
-		if (count % 2 == 0) {
-			printf("Sending msg  = %s , seq = %d\n", newmsg->info, newmsg->seq);
+				usleep(1000);
+				sendto(sock, newmsg, sizeof(Message), 0,
 
-			usleep(1000);
-			sendto(sock, newmsg, sizeof(Message), 0,
+				(const struct sockaddr *) &server, length);
 
-			(const struct sockaddr *) &server, length);
-
+			}
+			free(newmsg);
 		}
-
+		seek(fp, 0);
 	}
-
 	close(sock);
 
 	return NULL;
@@ -160,7 +163,7 @@ void *udp_send(void * argv) {
 }
 
 void *tcp_receive(void *argv) {
-	char *allones = (char*) malloc(sizeof(NUMPACKETS));
+	char allones[NUMPACKETS];
 	memset(allones, '1', NUMPACKETS);
 	printf("Started tcp RECIEVE \n");
 	int sockfd, newsockfd;
@@ -212,7 +215,7 @@ void *tcp_receive(void *argv) {
 	//bzero(buffer, NUMPACKETS);
 	printf("Current retranmit seq= %s, cmp = %d", buffer,
 			strcmp(buffer, allones));
-	while (strcmp(buffer, allones)!=0) {
+	while (strcmp(buffer, allones) != 0) {
 
 		n = read(newsockfd, buffer, NUMPACKETS);
 		//buffer[NUMPACKETS] = '\0';
@@ -237,7 +240,7 @@ void *udp_resend(void * argv) {
 		usleep(100);
 	}
 
-	char *allones = (char*) malloc(sizeof(NUMPACKETS));
+	char allones[NUMPACKETS];
 	memset(allones, '1', NUMPACKETS);
 
 	printf("Start retransmit\n");
@@ -312,7 +315,6 @@ void *udp_resend(void * argv) {
 
 				(const struct sockaddr *) &server, length);
 
-
 				free(newmsg);
 
 			}
@@ -326,7 +328,7 @@ void *udp_resend(void * argv) {
 
 int main(int argc, char *argv[]) {
 
-	if (argc != 2) {
+	if (argc != 3) {
 
 		printf("Usage: server port\n");
 
@@ -341,33 +343,30 @@ int main(int argc, char *argv[]) {
 	NUMPACKETS = getParts(size);
 
 	//setiing retransmission seq buffer to all '0'
-	buffer = (char *) malloc(NUMPACKETS);
+	buffer = (char *) malloc(NUMPACKETS + 1);
 	memset(buffer, '0', NUMPACKETS);
+	buffer[NUMPACKETS] = '\0';
+	Input inp;
 
-	Input *inp = malloc(sizeof(Input));
+	inp.hostname = gethostbyname(argv[2]);
 
-	inp->hostname = gethostbyname("localhost");
+	inp.port = atoi(argv[1]);
+	inp.fp = fp;
 
-	inp->port = atoi(argv[1]);
-	inp->fp = fp;
-
-	pthread_create(&control_thr, 0, tcp_control, inp);
+	pthread_create(&control_thr, 0, tcp_control, &inp);
 	pthread_create(&tcp_thr, 0, tcp_receive, NULL);
 	pthread_join(control_thr, NULL);
 
 	printf("Creating udp send thr \n");
-	pthread_create(&send_thr, 0, udp_send, inp);
+	pthread_create(&send_thr, 0, udp_send, &inp);
 
-	pthread_create(&resend_thr, 0, udp_resend, inp);
-
-
+	pthread_create(&resend_thr, 0, udp_resend, &inp);
 
 	pthread_join(send_thr, NULL);
 
-
-
 	pthread_join(resend_thr, NULL);
 	pthread_join(tcp_thr, NULL);
+	free(buffer);
 
 	pthread_exit(0);
 

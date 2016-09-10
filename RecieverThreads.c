@@ -68,7 +68,7 @@ void *sendErrorSeq(void *arg) {
 	}
 
 	printf("Inside sendErrorSeq\n");
-	char *allones = (char*) malloc(NUMPACKETS);
+	char allones[NUMPACKETS];
 	memset(allones, '1', NUMPACKETS);
 	int sockfd, n;
 	//int sockUDP;
@@ -134,7 +134,7 @@ void *udp_recieve(void * argv) {
 	printf("started udp reciever Pckets = %d\n", NUMPACKETS);
 	PACKETS = (char*) malloc(NUMPACKETS);
 	memset(PACKETS, '0', NUMPACKETS);
-	char *allones = (char*) malloc(NUMPACKETS);
+	char allones [NUMPACKETS];
 		memset(allones, '1', NUMPACKETS);
 	int sock, length, n, i;
 	FILE *fp;
@@ -187,6 +187,7 @@ void *udp_recieve(void * argv) {
 		writeChunk(fp, temp, temp->seq);
 		prev = temp->seq;
 	}
+	free(temp);
 
 	close(sock);
 //	udpRecieveEnd =1;

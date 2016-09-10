@@ -20,11 +20,11 @@
 
 int main(int argc, char *argv[]) {
 
-	if (argc < 2) {
-		fprintf(stderr, "ERROR, no port provided\n");
+	if (argc < 3) {
+		fprintf(stderr, "USage: port host \n");
 		exit(0);
 	}
-	struct hostent *server =  gethostbyname("localhost");
+	struct hostent *server =  gethostbyname(argv[2]);
 	pthread_create(&TCPcontrol_thr,0,TCP_Control,NULL);
 	pthread_join( TCPcontrol_thr, NULL);
 	pthread_create(&udprecieve_thr, 0, udp_recieve, argv[1]);
