@@ -303,7 +303,7 @@ void *udp_resend(void * argv) {
 
 int main(int argc, char *argv[]) {
 
-	if (argc != 3) {
+	if (argc != 2) {
 
 		printf("Usage: server port\n");
 
@@ -325,7 +325,7 @@ int main(int argc, char *argv[]) {
 
 	inp->hostname   =  gethostbyname("localhost");
 
-	inp->port = atoi(argv[2]);
+	inp->port = atoi(argv[1]);
 	inp->fp = fp;
 
 	pthread_create(&control_thr, 0, tcp_control, inp);
