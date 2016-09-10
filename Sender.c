@@ -265,6 +265,8 @@ void *udp_resend(void * argv) {
 
 	length = sizeof(struct sockaddr_in);
 
+
+
 //file handling
 
 //int seq;
@@ -274,7 +276,7 @@ void *udp_resend(void * argv) {
 	initFilePtr("x.txt", &fp, "r");
 
 //send file sequentially
-	while (strcmp(buffer, allones)) {
+	while (strcmp(buffer, allones)!=0) {
 		printf("%s\n", buffer);
 		for (count = 0; count < NUMPACKETS; count++) {
 //printf("Inisde for loop\n");

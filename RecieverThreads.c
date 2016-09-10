@@ -102,10 +102,12 @@ void *sendErrorSeq(void *arg) {
 			error("ERROR writing to socket");
 		}
 	}
+	printf("before sending allones sendErrseq\n");
 	n = send(sockfd, allones, NUMPACKETS, 0);
 	if (n < 0) {
 		error("ERROR writing to socket");
 	}
+	printf("after sending allones sendErrseq\n");
 	printf("Packets = %s\n", PACKETS);
 	close(sockfd);
 
