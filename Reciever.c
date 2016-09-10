@@ -14,13 +14,6 @@
 #include <pthread.h>
 #include "RecieverThreads.h"
 
-//global vars
-char pkts[1000];
-pthread_t udprecieve_thr, errorHandler_thr;
-
-typedef struct input {
-	int parts;
-} Input;
 
 
 
@@ -31,11 +24,14 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "ERROR, no port provided\n");
 		exit(0);
 	}
-
+	struct hostent *server =  gethostbyname("localhost");
+	pthread_create(&TCPcontrol_thr,0,TCP_Control,NULL);
+	pthread_join( TCPcontrol_thr, NULL);
 	pthread_create(&udprecieve_thr, 0, udp_recieve, argv[1]);
-	usleep(5000000);
-	pthread_create(&errorHandler_thr,0,sendErrorSeq,NULL);
-    pthread_join(errorHandler_thr,NULL);
+	usleep(7000000);
+	//pthread_create(&errorHandler_thr,0,sendErrorSeq,server);
+
+//    pthread_join(errorHandler_thr,NULL);
 	pthread_join( udprecieve_thr, NULL);
 	pthread_exit(0);
 
