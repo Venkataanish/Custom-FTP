@@ -337,13 +337,13 @@ int main(int argc, char *argv[]) {
 
 	pthread_create(&tcp_thr, 0, tcp_receive, NULL);
 
-	//pthread_create(&resend_thr, 0, udp_resend, inp);
+	pthread_create(&resend_thr, 0, udp_resend, inp);
 
 	pthread_join(send_thr, NULL);
 
 	pthread_join(tcp_thr, NULL);
 
-	//pthread_join(resend_thr, NULL);
+	pthread_join(resend_thr, NULL);
 
 	pthread_exit(0);
 
