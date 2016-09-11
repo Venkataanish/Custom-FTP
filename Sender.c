@@ -42,6 +42,7 @@ typedef struct input {
 
 	int port;
 	FILE *fp;
+	char filename[50];
 
 } Input;
 
@@ -142,16 +143,13 @@ void *udp_send(void * argv) {
 
 			newmsg = getNext(fp, count);
 
-			if (count % 2 == 0) {
-				printf("Sending msg  = %s , seq = %d\n", newmsg->info,
-						newmsg->seq);
+			/*printf("Sending msg  , seq = %d\n", newmsg->seq);*/
 
-				usleep(1000);
-				sendto(sock, newmsg, sizeof(Message), 0,
+			sendto(sock, newmsg, sizeof(Message), 0,
 
-				(const struct sockaddr *) &server, length);
+			(const struct sockaddr *) &server, length);
 
-			}
+			
 			free(newmsg);
 		}
 		seek(fp, 0);
@@ -221,7 +219,7 @@ void *tcp_receive(void *argv) {
 		//buffer[NUMPACKETS] = '\0';
 		resend_start = 1;
 		usleep(100);
-		printf("Received retransmit request:%s\n", buffer);
+		/*printf("Received retransmit request:\n");*/
 
 		if (n < 0)
 			error("ERROR reading from socket");
@@ -293,7 +291,7 @@ void *udp_resend(void * argv) {
 
 	FILE *fp;
 
-	initFilePtr("x.txt", &fp, "r");
+	initFilePtr(inp->filename, &fp, "r");
 
 //send file sequentially
 	while (strcmp(buffer, allones) != 0) {
@@ -306,8 +304,8 @@ void *udp_resend(void * argv) {
 
 				newmsg = getChunk(fp, count);
 
-				printf("RESending msg  = %s , seq = %d\n", newmsg->info,
-						newmsg->seq);
+				/*printf("RESending msg  = %s , seq = %d\n", newmsg->info,
+				 newmsg->seq);*/
 
 //usleep(1000);
 
@@ -328,7 +326,7 @@ void *udp_resend(void * argv) {
 
 int main(int argc, char *argv[]) {
 
-	if (argc != 3) {
+	if (argc != 4) {
 
 		printf("Usage: server port\n");
 
@@ -338,7 +336,7 @@ int main(int argc, char *argv[]) {
 
 	FILE *fp;
 
-	int size = initFilePtr("x.txt", &fp, "r");
+	int size = initFilePtr(argv[3], &fp, "r");
 
 	NUMPACKETS = getParts(size);
 
@@ -352,7 +350,7 @@ int main(int argc, char *argv[]) {
 
 	inp.port = atoi(argv[1]);
 	inp.fp = fp;
-
+	strcpy(inp.filename, argv[3]);
 	pthread_create(&control_thr, 0, tcp_control, &inp);
 	pthread_create(&tcp_thr, 0, tcp_receive, NULL);
 	pthread_join(control_thr, NULL);

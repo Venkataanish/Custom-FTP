@@ -139,7 +139,7 @@ void *udp_recieve(void * argv) {
 	int sock, length, n, i;
 	FILE *fp;
 
-	initFilePtr("y.txt", &fp, "w");
+	initFilePtr("temp.bin", &fp, "w");
 	printf("after init file ptr udp recieve\n");
 
 	Message *temp = (Message*) malloc(sizeof(Message));
@@ -167,7 +167,7 @@ void *udp_recieve(void * argv) {
 	printf("before for ptr udp recieve\n");
 	int prev =0;
 	while ((i= strcmp(PACKETS, allones))!=0) {
-		printf("inside for udp recieve\n");
+		/*printf("inside for udp recieve\n");*/
 		n = recvfrom(sock, temp, sizeof(Message), 0, (struct sockaddr *) &from,
 				&fromlen);
 		if (n < 0) {
@@ -175,15 +175,15 @@ void *udp_recieve(void * argv) {
 		}
 		PACKETS[temp->seq] = '1';
 		if(temp->seq - prev >1){
-			printf("curr = %d, prev = %d\n",temp->seq,prev);
+			/*printf("curr = %d, prev = %d\n",temp->seq,prev);*/
 			resend_start = 1;
 		}
-		printf(
+		/*printf(
 				"Received seq: %d, received message: %s, seqbuff = %s , i value = %d\n",
-				temp->seq, temp->info, PACKETS, i);
-		printf("NUMPACKETS = %d\n", NUMPACKETS);
+				temp->seq, temp->info, PACKETS, i);*/
+		/*printf("NUMPACKETS = %d\n", NUMPACKETS);
 		printf("PACKETS = %s\n",PACKETS);
-		printf("allones = %s\n",allones);
+		printf("allones = %s\n",allones);*/
 		writeChunk(fp, temp, temp->seq);
 		prev = temp->seq;
 	}

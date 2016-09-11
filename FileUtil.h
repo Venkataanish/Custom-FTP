@@ -7,7 +7,7 @@
 #define _FILEUTIL_H_
 
 
-#define CHUNKSIZE  7
+#define CHUNKSIZE  50000
 
 typedef struct message {
 	int seq;
